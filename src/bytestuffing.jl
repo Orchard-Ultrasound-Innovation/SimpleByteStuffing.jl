@@ -4,16 +4,16 @@ const ESC = 0xFE
 
 const FLAG = [SOP, EOP, ESC]
 
-function get_frame(command::UInt8, read_or_write::UInt8; payload=[])
-    frame = []
-    push!(frame, SOP)
-    push!(frame, command)
+function create_packet(command::UInt8, read_or_write::UInt8; payload=[])
+    packet = []
+    push!(packet, SOP)
+    push!(packet, command)
     verify_read_or_write(read_or_write)
-    push!(frame, read_or_write)
-    !isempty(payload) && append!(frame, get_byte_stuffed_payload(payload) )
-    push!(frame, get_checksum(command, read_or_write, payload))
-    push!(frame, EOP)
-    return convert(Vector{UInt8}, frame)
+    push!(packet, read_or_write)
+    !isempty(payload) && append!(packet, get_byte_stuffed_payload(payload) )
+    push!(packet, get_checksum(command, read_or_write, payload))
+    push!(packet, EOP)
+    return convert(Vector{UInt8}, packet)
 end
 
 verify_read_or_write(read_or_write) = !(read_or_write in [READ,WRITE]) && error("read_or_write must be of value READ:0x00 or WRITE:0x01.")
