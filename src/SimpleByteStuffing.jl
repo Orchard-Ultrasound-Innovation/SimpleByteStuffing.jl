@@ -28,9 +28,6 @@ EOP - end of packet
 """
 module SimpleByteStuffing
 
-const READ = 0x01
-const WRITE = 0x00
-
 export READ, WRITE
 export create_packet
 export parse_packet
