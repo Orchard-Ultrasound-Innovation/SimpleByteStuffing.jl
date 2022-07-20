@@ -33,6 +33,6 @@ using Test
 
     @test SimpleByteStuffing.verify_read_or_write(READ) == false
     @test SimpleByteStuffing.verify_read_or_write(WRITE) == false
-    @test_throws ErrorException SimpleByteStuffing.verify_read_or_write(0xFF)
+    @test_throws ErrorException SimpleByteStuffing.verify_read_or_write("r")
 
 end

@@ -1,5 +1,6 @@
-const READ = 0x01
-const WRITE = 0x00
+const READ = "READ"
+const WRITE = "WRITE"
+
 const ACK = 0xFA
 const NAK = 0xFB
 const SOP = 0xFC
@@ -8,31 +9,42 @@ const ESC = 0xFE
 
 const FLAG = [SOP, EOP, ESC]
 
-function create_packet(command::UInt8, read_or_write; payload::Vector{UInt8}=UInt8[])
+function create_packet(command::UInt8, read_or_write::String; payload::Vector{UInt8}=UInt8[])
     verify_read_or_write(read_or_write)
     packet = combine_and_stuff(command, read_or_write, payload)
     pushfirst!(packet, SOP)
     push!(packet, EOP)
-    return convert(Vector{UInt8},packet)
+    return packet
 end
 
-verify_read_or_write(read_or_write) = !(read_or_write in [READ,WRITE]) && error("read_or_write must be of value READ or WRITE.")
+verify_read_or_write(read_or_write::String) = !(read_or_write in [READ,WRITE]) && error("read_or_write must be of value \"READ\" or \"WRITE\".")
 
-function combine_and_stuff(command, read_or_write, payload)
-    packet = []
-    push!(packet, command | (read_or_write<<7) )
-    append!(packet, payload)
-    checksum = get_checksum(packet)
-    push!(packet, checksum)
-    packet = byte_stuff(convert(Vector{UInt8},packet))
+function combine_and_stuff(command::UInt8, read_or_write::String, payload::Vector{UInt8})
+    frame = UInt8[]
+    rw = convert_rw(read_or_write)
+    push!(frame, command | (rw<<7) )
+    append!(frame, payload)
+    checksum = get_checksum(frame)
+    push!(frame, checksum)
+    frame = byte_stuff(frame)
+    return frame
+end
+
+function convert_rw(read_or_write::String)
+    if(read_or_write === WRITE) 
+        rw = 0x00
+    else
+        rw = 0x01
+    end
+    return rw
 end
 
 function byte_stuff(data::Vector{UInt8})
-    bs_data = []
+    bs_data = UInt8[]
     for i in data
         if i in FLAG
             push!(bs_data, ESC)
-            push!(bs_data, xor(i,0x20))
+            push!(bs_data, xor(i, 0x20))
         else
             push!(bs_data, i)
         end
@@ -41,7 +53,7 @@ function byte_stuff(data::Vector{UInt8})
     return bs_data
 end
 
-function parse_packet(packet)
+function parse_packet(packet::Vector{UInt8})
     
     destuffed = destuff_packet(packet)
 
@@ -58,26 +70,20 @@ function parse_packet(packet)
     crc = get_checksum(data)
     verify_checksum( destuffed[eop-1], crc)
     
-    
-    @info convert(Vector{UInt8},destuffed[sop+2:end-2])
-    return convert(Vector{UInt8},destuffed[sop+2:end-2])
+    @info destuffed[sop+2:end-2]
+    return destuffed[sop+2:end-2]
 end
 
-verify_sop(sop) = isempty(sop) && error("Packet is invalid! Start-of-packet not found.")
-verify_ack(ack) = (ack != ACK) && error("Packet is invalid! ACK not found.")
-verify_eop(eop) = isempty(eop) && error("Packet is invalid! End-of-packet not found.")
-verify_checksum(sum1, sum2) = (sum1 != sum2) && error("Packet is invalid! CRC: does not match.")
-
-function destuff_packet(bs_data)
+function destuff_packet(bs_data::Vector{UInt8})
 
     len = length(bs_data)
     i = 1
-    data = []
+    data = UInt8[]
 
     while(i <= len)
         if bs_data[i] == ESC
-            i = i+1
-            push!(data, xor( bs_data[i] ,0x20))
+            i = i + 1
+            push!(data, xor( bs_data[i], 0x20))
         else
             push!(data, bs_data[i])
         end
@@ -89,9 +95,14 @@ function destuff_packet(bs_data)
 
 end
 
-function get_checksum(data)
+verify_sop(sop) = isempty(sop) && error("Packet is invalid! Start-of-packet not found.")
+verify_ack(ack) = (ack != ACK) && error("Packet is invalid! ACK not found.")
+verify_eop(eop) = isempty(eop) && error("Packet is invalid! End-of-packet not found.")
+
+function get_checksum(data::Vector{UInt8})
     checksum = sum(data)
-    checksum = UInt8( checksum%256 )
-    checksum = ~checksum
-    return UInt8(checksum)
+    checksum = UInt8(checksum%256)
+    return ~checksum
 end
+
+verify_checksum(sum1, sum2) = (sum1 != sum2) && error("Packet is invalid! CRC: does not match.")

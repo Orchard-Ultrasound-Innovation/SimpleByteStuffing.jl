@@ -6,7 +6,7 @@ To create a packet:
 packet = create_packet({command}, {read_or_write}, {payload})
 
 command: 8-bit command
-read_or_write: acceptables values are READ and WRITE
+read_or_write: acceptables values are "READ" and "WRITE"
 payload: vector of 8-bits
 ```
 
@@ -35,4 +35,3 @@ export parse_packet
 include("bytestuffing.jl")
 
 end
-
