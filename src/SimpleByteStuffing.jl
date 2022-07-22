@@ -12,14 +12,13 @@ payload: vector of 8-bits
 
 To parse a received packet:
 ```
-data = parse_packet(rx_packet)
+payload = parse_packet(packet)
 ```
 
 ```
-packet: [SOP][CMD][Stat][Payload1][...][Payloadn][Checksum][EOP]
+packet: [SOP][CMD][Payload1][...][Payloadn][Checksum][EOP]
 SOP - start of packet
 CMD - command with read/write bit 
-Status - ACK/NAK, only exists for received packets
 Payload - data
 Checksum - 8-bit checksum
 EOP - end of packet
@@ -28,7 +27,6 @@ EOP - end of packet
 """
 module SimpleByteStuffing
 
-export READ, WRITE
 export create_packet
 export parse_packet
 
